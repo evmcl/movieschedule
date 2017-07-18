@@ -1,0 +1,23 @@
+#!/bin/sh
+# The following is an example of how to run the liquibase command to update a
+# database.  You must substitute the following variables:
+
+DBHOST=localhost
+DBNAME=dbname
+DBUSER=user
+DBPASS=password
+
+# USAGE: run.sh <command>
+PROG="$0"
+
+usage() {
+  echo "$PROG <command>"
+  exit 1
+}
+
+if [ "a$a" = "a-h" ] ; then
+  usage
+  exit 1
+fi
+
+liquibase --logLevel=info --driver=org.postgresql.Driver --url="jdbc:postgresql://$DBHOST:5432/$DBNAME?user=$DBUSER&password=$DBPASS" --changeLogFile=db.xml "$@" || exit $?

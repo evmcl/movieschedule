@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd"
+>
+  <changeSet id="table-config-1" author="emclean">
+
+    <createTable tableName="config" remarks="Configuration for the application">
+      <column name="id" type="int" defaultValueNumeric="1">
+	<constraints nullable="false" primaryKey="true" primaryKeyName="config_pk"/>
+      </column>
+      <column name="google_access_token" type="varchar(1024)" defaultValue="" remarks="Current access token to access google.">
+	<constraints nullable="false"/>
+      </column>
+      <column name="calendar_id" type="varchar(1024)" defaultValue="" remarks="Calendar to update.">
+	<constraints nullable="false"/>
+      </column>
+    </createTable>
+
+    <sql>ALTER TABLE config ADD CONSTRAINT config_id_check CHECK ( id = 1 )</sql>
+
+    <insert tableName="config">
+      <column name="id" valueNumeric="1"/>
+    </insert>
+
+  </changeSet>
+</databaseChangeLog>

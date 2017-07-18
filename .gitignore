@@ -1,0 +1,8 @@
+_vendor
+database/3run.sh
+database/reset.sh
+database/run.sh
+inc/movieschedule/imdb.php
+web/config.php
+.hg
+.hgignore

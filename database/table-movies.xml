@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd"
+>
+  <changeSet id="table-movies-1" author="emclean">
+
+    <createTable tableName="movies" remarks="Each movie being tracked.">
+      <column name="id" type="int" autoIncrement="true">
+	<constraints nullable="false" primaryKey="true" primaryKeyName="movie_pk"/>
+      </column>
+      <column name="title" type="varchar(200)" remarks="Title of the movie.">
+	<constraints nullable="false"/>
+      </column>
+      <column name="state" type="char(1)" remarks="(N)ew, (W)atching, (I)gnoring" defaultValue="N">
+	<constraints nullable="false"/>
+      </column>
+      <column name="yourmovies_pass_id" type="int" remarks="Used for keeping track of when we saw the movie in the yourmovies page."/>
+      <column name="theatre_release_date" type="date" remarks="Expected release date in Australian theatres."/>
+      <column name="theatre_calendar_event_id" type="varchar(200)" defaultValue="" remarks="Calendar event for theatre release date.">
+	<constraints nullable="false"/>
+      </column>
+      <column name="theatre_calendar_date" type="date" remarks="The date stored in the calendar."/>
+      <column name="dvd_release_date" type="date" remarks="DVD or online release date."/>
+      <column name="dvd_calendar_event_id" type="varchar(200)" defaultValue="" remarks="Calendar event for DVD release date.">
+	<constraints nullable="false"/>
+      </column>
+      <column name="dvd_calendar_date" type="date" remarks="The date stored in the calendar."/>
+      <column name="yourmovies_title" type="varchar(200)" remarks="Title of the movie." defaultValue="">
+	<constraints nullable="false"/>
+      </column>
+      <column name="yourmovies_url" type="varchar(2048)" remarks="URL of the movie on yourmovies site." defaultValue="">
+	<constraints nullable="false"/>
+      </column>
+      <column name="imdb_id" type="varchar(20)" remarks="ID for the movie at IMDB." defaultValue="">
+	<constraints nullable="false"/>
+      </column>
+      <column name="refresh_from_imdb" type="boolean" remarks="Need to retrieve the details from IMDB." defaultValueBoolean="false">
+	<constraints nullable="false"/>
+      </column>
+      <column name="poster_url" type="varchar(2048)" remarks="URL of the movie poster image." defaultValue="">
+	<constraints nullable="false"/>
+      </column>
+      <column name="year" type="varchar(4)" defaultValue="">
+	<constraints nullable="false"/>
+      </column>
+      <column name="genre" type="varchar(2048)" defaultValue="">
+	<constraints nullable="false"/>
+      </column>
+      <column name="director" type="varchar(2048)" defaultValue="">
+	<constraints nullable="false"/>
+      </column>
+      <column name="writer" type="varchar(2048)" defaultValue="">
+	<constraints nullable="false"/>
+      </column>
+      <column name="actors" type="varchar(2048)" defaultValue="">
+	<constraints nullable="false"/>
+      </column>
+      <column name="language" type="varchar(2048)" defaultValue="">
+	<constraints nullable="false"/>
+      </column>
+      <column name="country" type="varchar(2048)" defaultValue="">
+	<constraints nullable="false"/>
+      </column>
+      <column name="plot" type="text" defaultValue="">
+	<constraints nullable="false"/>
+      </column>
+
+    </createTable>
+
+    <sql>ALTER TABLE movies ADD CONSTRAINT movies_state_check CHECK ( state IN ('N', 'W', 'I') )</sql>
+
+  </changeSet>
+  <changeSet id="table-movies-2" author="emclean">
+    <preConditions onFail="CONTINUE">
+      <changeSetExecuted id="table-movies-1" author="emclean" changeLogFile="table-movies.xml"/>
+    </preConditions>
+
+    <renameColumn tableName="movies" oldColumnName="yourmovies_pass_id" newColumnName="flicks_pass_id"/>
+    <sql>COMMENT ON COLUMN movies.flicks_pass_id IS 'Used for keeping track of when we saw the movie in the flicks page.'</sql>
+
+    <renameColumn tableName="movies" oldColumnName="yourmovies_title" newColumnName="flicks_title"/>
+
+    <renameColumn tableName="movies" oldColumnName="yourmovies_url" newColumnName="flicks_url"/>
+    <sql>COMMENT ON COLUMN movies.flicks_pass_id IS 'URL of the movie on flicks site.'</sql>
+
+    <addColumn tableName="movies">
+      <column name="flicks_poster_url" type="varchar(2048)" remarks="URL of the movie poster image from flicks." defaultValue="">
+	<constraints nullable="false"/>
+      </column>
+      <column name="flicks_summary" type="text" remarks="Summary from flicks." defaultValue="">
+	<constraints nullable="false"/>
+      </column>
+    </addColumn>
+
+  </changeSet>
+  <changeSet id="table-movies-3" author="emclean">
+    <preConditions onFail="CONTINUE">
+      <changeSetExecuted id="table-movies-2" author="emclean" changeLogFile="table-movies.xml"/>
+    </preConditions>
+
+    <renameColumn tableName="movies" oldColumnName="refresh_from_imdb" newColumnName="refresh_from_mdb"/>
+    <sql>COMMENT ON COLUMN movies.refresh_from_mdb IS 'Need to retrieve the details from the movie database.'</sql>
+
+    <addColumn tableName="movies">
+      <column name="tmdb_id" type="integer" remarks="ID for the movie at TMDB."/>
+    </addColumn>
+
+  </changeSet>
+</databaseChangeLog>

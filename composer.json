@@ -1,0 +1,10 @@
+{
+  "config": {
+    "vendor-dir": "_vendor/php"
+  },
+
+  "require": {
+    "adodb/adodb-php": ">=5.20.4",
+    "google/apiclient": "1.*"
+  }
+}

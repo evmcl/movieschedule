@@ -1,0 +1,35 @@
+.minor {
+  color: #AAAAAA;
+}
+
+a.command {
+  color: black;
+  text-decoration: none;
+}
+
+a.command:hover {
+  text-decoration: underline;
+}
+
+.state-I, .state-R {
+  color: #999999;
+}
+
+.state-R .movie-title, .state-R .movie-theatre-release-date, .state-R .movie-dvd-release-date {
+  text-decoration: line-through;
+}
+
+td.label {
+  text-align: right;
+  color: #999999;
+}
+
+td.errmsgs {
+  font-weight: bold;
+  color: red;
+}
+
+td.msgs {
+  font-weight: bold;
+  color: blue;
+}

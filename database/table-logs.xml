@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd"
+>
+  <changeSet id="table-logs-1" author="emclean">
+
+    <createTable tableName="logs" remarks="Logs of movie changes.">
+      <column name="id" type="int" autoIncrement="true">
+	<constraints nullable="false" primaryKey="true" primaryKeyName="logs_pk"/>
+      </column>
+      <column name="movie_id" type="int">
+	<constraints nullable="false"/>
+      </column>
+      <column name="mail_report_id" type="int" remarks="Which email batch it went in."/>
+      <column name="log_date" type="timestamp with time zone">
+	<constraints nullable="false"/>
+      </column>
+      <column name="high" type="boolean" remarks="High priority log." defaultValueBoolean="false">
+	<constraints nullable="false"/>
+      </column>
+      <column name="message" type="text" remarks="The log message.">
+	<constraints nullable="false"/>
+      </column>
+
+    </createTable>
+
+    <sql>ALTER TABLE logs ALTER COLUMN log_date SET DEFAULT CURRENT_TIMESTAMP</sql>
+
+  </changeSet>
+
+  <changeSet id="table-logs-2" author="emclean">
+    <preConditions onFail="CONTINUE">
+      <changeSetExecuted id="table-logs-1" author="emclean" changeLogFile="table-logs.xml"/>
+      <changeSetExecuted id="table-movies-1" author="emclean" changeLogFile="table-movies.xml"/>
+    </preConditions>
+
+    <addForeignKeyConstraint
+      baseTableName="logs"
+      baseColumnNames="movie_id"
+      referencedTableName="movies"
+      referencedColumnNames="id"
+      constraintName="logs_movies_fk"
+      deferrable="false"
+      initiallyDeferred="false"
+      onDelete="CASCADE"
+      onUpdate="RESTRICT"
+    />
+
+  </changeSet>
+</databaseChangeLog>
