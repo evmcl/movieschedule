@@ -229,7 +229,7 @@ function validate( array $movie ) {
     $msgs .= '<div>Invalid IMDB ID (put &quot;unknown&quot; if unknown).</div>';
   if ( 1 !== preg_match('/^(https?:\/\/.+)?$/', $movie['poster_url']) )
     $msgs .= '<div>Invalid poster URL.</div>';
-  if ( 1 !== preg_match('/^(https?:\/\/.+)?$/', $movie['flicks_poster_url']) )
+  if ( 1 !== preg_match('/^((https?:)?\/\/.+)?$/', $movie['flicks_poster_url']) )
     $msgs .= '<div>Invalid Flicks poster URL.</div>';
   if ( 1 !== preg_match('/^(20\d\d)?$/', $movie['year']) )
     $msgs .= '<div>Invalid year.</div>';
