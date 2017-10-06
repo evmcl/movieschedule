@@ -152,7 +152,7 @@ function flicks()
         if ( strlen($txt) <= 0 )
           throw new \Exception('Empty movie title.');
         $title = $txt;
-        if ( $title === 'WATCH \'ROGUE ONE\' ON QUICKFLIX' )
+        if ( $title === 'GASFF: Australian Shorts' )
           continue;
       }
       {
