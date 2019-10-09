@@ -26,7 +26,7 @@ INSERT INTO movies
 (id, title, flicks_title, flicks_pass_id, theatre_release_date, flicks_url, flicks_poster_url, flicks_summary)
 VALUES(?, ?, ?, ?, ?, ?, ?, ?)
 EOS
-        , array($id, $movie->title, $movie->title, $pass_id, $movie->date->date, $movie->url, $movie->poster_url, $movie->summary));
+        , array($id, $movie->title, $movie->title, $pass_id, $movie->date->date, $movie->url, $movie->poster_url, ''));
 
         $db->Execute(<<<EOS
 INSERT INTO logs
@@ -52,7 +52,7 @@ UPDATE movies
 SET flicks_pass_id = ?, theatre_release_date = ?, flicks_url = ?, flicks_poster_url = ?, flicks_summary = ?
 WHERE id = ?
 EOS
-        , array($pass_id, $movie->date->date, $movie->url, $movie->poster_url, $movie->summary, $row['id']));
+        , array($pass_id, $movie->date->date, $movie->url, $movie->poster_url, '', $row['id']));
 
         if ( null !== $logmsg ) {
           $db->Execute(<<<EOS
@@ -110,7 +110,6 @@ EOS
  *   title       The title of the movie.
  *   url         The URL for the movie on www.flicks.com.au.
  *   poster_url  The URL for the poster image on www.flicks.com.au.
- *   summary     The summary from www.flicks.com.au.
  *   date->year  Release date year.
  *   date->month Release date month.
  *   date->day   Release date day.
@@ -118,112 +117,115 @@ EOS
  */
 function flicks()
 {
+  $arr = array();
+  //$ret = flicksParse('http://localhost/movies/7.html', $arr);
+  $ret = flicksParse('https://www.flicks.com.au/coming-soon/', $arr);
+  $xi = 1;
+  while ( true === $ret ) {
+    ++$xi;
+    $ret = flicksParse("https://www.flicks.com.au/coming-soon/$xi/", $arr);
+  }
+  return $arr;
+}
+
+function flicksParse( $docUrl, array &$arr )
+{
   libxml_use_internal_errors(true);
   $doc = new \DOMDocument();
-  if ( false === $doc->loadHTML(curlit('https://www.flicks.com.au/coming-soon/?limit=all')->body) )
+  if ( false === $doc->loadHTML(curlit($docUrl)->body) )
     throw new \Exception('Could not parse flicks data.');
   $xpath = new \DOMXPath($doc);
-  $nodes = $xpath->query("//ul[contains(@class,'article-list')]");
-  if (( false === $nodes ) || ( $nodes->length <= 0 ))
-    throw new \Exception('Could not find ul containing new releases.');
-  if ( 1 !== $nodes->length )
-    throw new \Exception('Unexpected structure (more than one ul.article-list element).');
-  $movies = $xpath->query("li//div[contains(@class,'grid--zero')]", $nodes->item(0));
-  if (( false === $movies ) || ( $movies->length <= 0 ))
-    throw new \Exception('Could not find div.grid--zero elements.');
-  $len = $movies->length;
-  $ret = array();
-  $rel_date = '';
-  for ( $xi = 0; $xi < $len; ++$xi ) {
-    $movie = $movies->item($xi);
-    $date = null;
-    $title = null;
-    $url = null;
-    $poster_url = null;
-    $summary = null;
 
+  $article_page_container = $xpath->query("//article[contains(@class,'page__container')]");
+  if (( false === $article_page_container ) || ( $article_page_container->length <= 0 ))
+    throw new \Exception('Could not find article element containing new releases.');
+  if ( 1 !== $article_page_container->length )
+    throw new \Exception('Unexpected structure (more than one article.page__container element).');
+
+  $divs = $xpath->query("div", $article_page_container->item(0));
+  if (( false === $divs ) || ( $divs->length <= 0 ))
+    throw new \Exception('Could not find divs under the article element containing new releases.');
+
+  $days = $xpath->query("section", $divs->item(0));
+  if ( false === $days )
+    throw new \Exception('1 Could not find day sections for new releases.'); // Probably means end of page.
+  if ( $days->length <= 0 )
+    return false;
+
+  $daysLen = $days->length;
+  for ( $dayIdx = 0; $dayIdx < $daysLen; ++$dayIdx ) {
+    $day = $days->item($dayIdx);
+    $dateEl = _getsubelement($day, 'h3', 'heading--module');
+    if ( false === $dateEl )
+      throw new \Exception('Could not find h3 for date.');
+    $dateTxt = trim($dateEl->textContent);
+    $date = _massage_date($dateTxt);
+    if ( false === $date )
     {
-      $subdiv = _getsubelement($movie, 'div', 'article-item__content');
+      if ( _skip_based_on_date($dateTxt) )
+        continue;
+      throw new \Exception("Could not parse date $dateTxt");
+    }
+    $relDate = parseDate($date);
+
+    $movies = $xpath->query("div/div/article[contains(@class,'list-carousel-item')]", $day);
+    if (( false === $movies ) || ( $movies->length <= 0 ))
+      throw new \Exception("Could not find movies for $date");
+
+    $moviesLen = $movies->length;
+    for ( $moviesIdx = 0; $moviesIdx < $moviesLen; ++$moviesIdx ) {
+      $movie = $movies->item($moviesIdx);
+
+      $title = null;
+      $url = null;
+      $posterUrl = null;
+
       {
-        $a = _getsubelement(_getsubelement($subdiv, 'h3'), 'a');
+        $h = _getsubelement($movie, 'h4', 'list-carousel-item__heading');
+        if ( false === $h )
+          throw new \Exception("Could not find h4 for the title of the movie in $date");
+        $a = _getsubelement($h, 'a');
         if ( false === $a )
-          throw new \Exception('Could not find h3 a for the title of the movie.');
+          throw new \Exception("Could not find a for the title of the movie in $date");
         $txt = trim($a->textContent);
         if ( strlen($txt) <= 0 )
-          throw new \Exception('Empty movie title.');
+          throw new \Exception("Empty movie title in $date");
         $title = $txt;
-        if ( $title === 'GASFF: Australian Shorts' )
-          continue;
-      }
-      {
-        $dt = _getsubelement($subdiv, 'h5', 'cs-release-view__date');
-        if ( false === $dt )
-          throw new \Exception("Could not find h5.cs-release-view__date for $title");
-        $txt = trim($dt->textContent);
-        if ( strlen($txt) <= 0 )
-          throw new \Exception("Empty date for $title");
-        $date = _massage_date($txt);
-        if ( false === $date )
-        {
-          if ( _skip_based_on_date($txt) )
-            continue;
-          throw new \Exception("Could not parse date $txt for $title");
-        }
-      }
-      {
-        $p = _getsubelement($subdiv, 'p', 'eta');
-        if ( false === $p )
-          throw new \Exception("Could not find p.eta for $title");
-        $txt = trim($p->textContent);
-        if ( strlen($txt) > 0 )
-          $summary = $txt;
-      }
-      {
-        $div = _getsubelement($subdiv, 'div', 'button-group');
-        if ( false === $div )
-          throw new \Exception("Could not find div.button-group for $title");
-        for ( $xj = 0; $xj < $div->childNodes->length; ++$xj ) {
-          $item = $div->childNodes->item($xj);
-          if ( 'a' === $item->nodeName )
-            if ( false != strstr($item->textContent, 'More Info') ) {
-              $href = _getattr($item, 'href');
-              if ( ! empty($href) ) {
-                $url = "http://www.flicks.com.au$href";
-                break;
-              }
-            }
-        }
-      }
-    }
-    {
-      $subdiv = _getsubelement($movie, 'div', 'article-item__image');
-      if ( false === $subdiv )
-        throw new \Exception("Could not find image div for $title");
-      $image = _getsubelement($subdiv, 'img');
-      if ( false === $image )
-        throw new \Exception("Could not find img for $title");
-      $str = _getattr($image, 'src');
-      if ( is_string($str) && ( strlen($str) > 0 ))
-        $poster_url = $str;
-    }
 
-    if ( is_null($date) || empty($title) || empty($url) || empty($poster_url) || empty($summary) ) {
-      if ( empty($title) )
-        throw new \Exception('Error parsing movie data.');
-      throw new \Exception("Error parsing movie data for $title");
+        $href = _getattr($a, 'href');
+        if ( is_string($href) && ( strlen($href) > 0 ))
+          $url = "https://www.flicks.com.au$href";
+      }
+
+      {
+        $a = _getsubelement($movie, 'a', 'list-carousel-item__image__link');
+        if ( false === $a )
+          throw new \Exception("Could not find image link for $title");
+        $image = _getsubelement($a, 'img');
+        if ( false === $image )
+          throw new \Exception("Could not find img for $title");
+        $str = _getattr($image, 'src');
+        if ( is_string($str) && ( strlen($str) > 0 ))
+          $posterUrl = $str;
+      }
+
+      if ( empty($title) || empty($url) || empty($posterUrl) ) {
+        if ( empty($title) )
+          throw new \Exception("Error parsing movie data in $date");
+        throw new \Exception("Error parsing movie data for $title");
+      }
+
+      $obj = new \stdClass();
+      $obj->date = $relDate;
+      $obj->title = $title;
+      $obj->url = $url;
+      $obj->poster_url = $posterUrl;
+
+      $arr[] = $obj;
     }
-    if ( ! empty($date) ) {
-      $rel_date = parseDate($date);
-    }
-    $obj = new \stdClass();
-    $obj->date = $rel_date;
-    $obj->title = $title;
-    $obj->url = $url;
-    $obj->poster_url = $poster_url;
-    $obj->summary = $summary;
-    $ret[] = $obj;
   }
-  return $ret;
+
+  return true;
 }
 
 function _getsubelement( $parent, $name, $cls = null ) {
@@ -267,5 +269,5 @@ function _massage_date( $str ) {
 }
 
 function _skip_based_on_date( $str ) {
-  return 1 === preg_match('/\S+\s+\d+/', $str);
+  return 1 === preg_match('/\d+/', $str);
 }
