@@ -181,9 +181,9 @@ function flicksParse( $docUrl, array &$arr )
       $posterUrl = null;
 
       {
-        $h = _getsubelement($movie, 'h4', 'list-carousel-item__heading');
+        $h = _getsubelement($movie, 'h3', 'list-carousel-item__heading');
         if ( false === $h )
-          throw new \Exception("Could not find h4 for the title of the movie in $date");
+          throw new \Exception("Could not find h3 for the title of the movie in $date");
         $a = _getsubelement($h, 'a');
         if ( false === $a )
           throw new \Exception("Could not find a for the title of the movie in $date");
@@ -205,15 +205,22 @@ function flicksParse( $docUrl, array &$arr )
         if ( false === $image )
           throw new \Exception("Could not find img for $title");
         $str = _getattr($image, 'src');
-        if ( is_string($str) && ( strlen($str) > 0 ))
-          $posterUrl = $str;
+        if ( is_string($str) && ( strlen($str) > 0 )) {
+          if ( $str != '/img/placeholders/poster-placeholder.jpg' )
+            $posterUrl = $str;
+          else
+            $posterUrl = '';
+        }
       }
 
-      if ( empty($title) || empty($url) || empty($posterUrl) ) {
+      if ( empty($title) || empty($url) || is_null($posterUrl) ) {
         if ( empty($title) )
           throw new \Exception("Error parsing movie data in $date");
         throw new \Exception("Error parsing movie data for $title");
       }
+
+      if ( false !== strpos($title, ": Season ") )
+        continue;
 
       $obj = new \stdClass();
       $obj->date = $relDate;
